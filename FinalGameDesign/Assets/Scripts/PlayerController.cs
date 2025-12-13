@@ -1,77 +1,46 @@
 using UnityEngine;
 
-public class LaneRunner : MonoBehaviour
+public class XControl : MonoBehaviour
 {
-    [Header("Lane Settings")]
-    public float leftLaneX = -3f;
-    public float middleLaneX = 0f;
-    public float rightLaneX = 3f;
-    public float laneChangeSpeed = 10f;
+    public float x = 0f;
+    public float jumpForce = 5f;
+    public float jumpCooldown = 1f; // Time in seconds between jumps
 
-    [Header("Forward Movement")]
-    public float forwardSpeed = 10f;
+    private Rigidbody rb;
+    private Animator anim;
+    private float nextJumpTime = 0f; // Time when the player can jump again
 
-    [Header("Ground Settings")]
-    public float fixedY = 0.5f;       // The height your player should stay at
-
-    [Header("Looping Settings")]
-    public float resetZ = 200f;       // After reaching this Z, restart
-    public float startZ = 0f;         // Restart point
-
-    private int currentLane = 1;
-    private float[] laneXPositions;
-
-    private void Awake()
+    void Start()
     {
-        laneXPositions = new float[3] { leftLaneX, middleLaneX, rightLaneX };
+        rb = GetComponent<Rigidbody>();
+        anim = GetComponent<Animator>();
     }
 
-    private void Update()
+    void Update()
     {
-        HandleInput();
-        MoveForward();
-        SlideToLane();
-        KeepOnGround();
-        LoopLevel();
-    }
+        // Move on X
+        if (Input.GetKeyDown(KeyCode.A))
+            x -= 5f;
 
-    private void HandleInput()
-    {
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
-            currentLane = Mathf.Clamp(currentLane - 1, 0, 2);
+        if (Input.GetKeyDown(KeyCode.D))
+            x += 5f;
 
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-            currentLane = Mathf.Clamp(currentLane + 1, 0, 2);
-    }
+        // Clamp x between -5 and 5
+        x = Mathf.Clamp(x, -5f, 5f);
 
-    private void MoveForward()
-    {
-        transform.position += Vector3.forward * forwardSpeed * Time.deltaTime;
-    }
+        // Apply position
+        transform.position = new Vector3(x, transform.position.y, transform.position.z);
 
-    private void SlideToLane()
-    {
-        float targetX = laneXPositions[currentLane];
-
-        Vector3 pos = transform.position;
-        pos.x = Mathf.Lerp(pos.x, targetX, laneChangeSpeed * Time.deltaTime);
-        transform.position = pos;
-    }
-
-    private void KeepOnGround()
-    {
-        Vector3 pos = transform.position;
-        pos.y = fixedY;        // FORCES player to stay grounded
-        transform.position = pos;
-    }
-
-    private void LoopLevel()
-    {
-        if (transform.position.z >= resetZ)
+        // Jump with cooldown
+        if (Input.GetKeyDown(KeyCode.Space) && Time.time >= nextJumpTime)
         {
-            Vector3 pos = transform.position;
-            pos.z = startZ;    // Reset to beginning
-            transform.position = pos;
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+
+            if (anim != null)
+                anim.SetTrigger("Jump");
+
+            // Set next allowed jump time
+            nextJumpTime = Time.time + jumpCooldown;
         }
     }
 }
